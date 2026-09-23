@@ -302,16 +302,41 @@ function renderChart(
     }).filter((a) => a !== null) as object[];
   }
 
+  // Responsive layout based on screen width
+  const isMobile = window.innerWidth < 768;
   const layout: Partial<Plotly.Layout> = {
     title: title,
-    xaxis: { title: 'Time' },
-    yaxis: { title: title },
+    xaxis: {
+      title: 'Time',
+      tickfont: { size: isMobile ? 10 : 12 },
+    },
+    yaxis: {
+      title: title,
+      tickfont: { size: isMobile ? 10 : 12 },
+    },
     hovermode: 'x unified',
-    margin: { l: 60, r: 20, t: 50, b: 40 },
-    height: 380,
+    margin: isMobile
+      ? { l: 45, r: 15, t: 45, b: 80 }
+      : { l: 60, r: 20, t: 50, b: 40 },
+    height: isMobile ? 300 : 380,
     plot_bgcolor: 'rgba(255, 255, 255, 0)',
     paper_bgcolor: 'rgba(0, 0, 0, 0)',
     annotations: annotations,
+    legend: isMobile
+      ? {
+          orientation: 'h' as const,
+          x: 0,
+          y: -0.3,
+          xanchor: 'left' as const,
+          yanchor: 'top' as const,
+          font: { size: 10 },
+        }
+      : {
+          x: 1,
+          y: 1,
+          xanchor: 'right' as const,
+          yanchor: 'top' as const,
+        },
   };
 
   Plotly.newPlot(div, data, layout, { responsive: true });
