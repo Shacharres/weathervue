@@ -4,6 +4,8 @@ import { hourlyKey } from '../types';
 import { MODELS } from '../models';
 
 export function renderCharts(forecast: ForecastResponse): void {
+  renderLegend();
+
   // Render short-term (30 hours)
   const shortTermForecast = sliceHours(forecast, 30);
   const temperatureShort = buildTraces(shortTermForecast, 'temperature_2m');
@@ -322,25 +324,53 @@ function renderChart(
     plot_bgcolor: 'rgba(255, 255, 255, 0)',
     paper_bgcolor: 'rgba(0, 0, 0, 0)',
     annotations: annotations,
-    legend: isMobile
-      ? {
-          orientation: 'h' as const,
-          x: 0,
-          y: -0.5,
-          xanchor: 'left' as const,
-          yanchor: 'top' as const,
-          font: { size: 9 },
-          bgcolor: 'rgba(255, 255, 255, 0.8)',
-          bordercolor: 'rgba(0, 0, 0, 0.1)',
-          borderwidth: 0,
-        }
-      : {
-          x: 1,
-          y: 1,
-          xanchor: 'right' as const,
-          yanchor: 'top' as const,
-        },
+    showlegend: false,
   };
 
   Plotly.newPlot(div, data, layout, { responsive: true });
+}
+
+function renderLegend(): void {
+  const legendContainer = document.getElementById('chart-legend');
+  if (!legendContainer) return;
+
+  legendContainer.innerHTML = '';
+
+  const legendList = document.createElement('div');
+  legendList.className = 'legend-items';
+
+  for (const model of MODELS) {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+
+    const colorBox = document.createElement('span');
+    colorBox.className = 'legend-color';
+    colorBox.style.backgroundColor = model.color;
+
+    const label = document.createElement('span');
+    label.className = 'legend-label';
+    label.textContent = model.label;
+
+    item.appendChild(colorBox);
+    item.appendChild(label);
+    legendList.appendChild(item);
+  }
+
+  // Add average line
+  const avgItem = document.createElement('div');
+  avgItem.className = 'legend-item';
+
+  const avgBox = document.createElement('span');
+  avgBox.className = 'legend-color legend-average';
+  avgBox.style.backgroundColor = '#e74c3c';
+
+  const avgLabel = document.createElement('span');
+  avgLabel.className = 'legend-label';
+  avgLabel.textContent = 'Average';
+
+  avgItem.appendChild(avgBox);
+  avgItem.appendChild(avgLabel);
+  legendList.appendChild(avgItem);
+
+  legendContainer.appendChild(legendList);
 }
