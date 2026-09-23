@@ -58,21 +58,14 @@ function buildTraces(
 ): Plotly.Data[] {
   const traces: Plotly.Data[] = [];
   const times = forecast.hourly.time;
+  const allModelValues: (number | null)[] = new Array(times.length).fill(null);
+  const modelCounts: number[] = new Array(times.length).fill(0);
 
   for (const model of MODELS) {
     const key = hourlyKey(variable, model.id);
     const values = forecast.hourly[key];
 
     if (!values || !Array.isArray(values)) {
-      continue;
-    }
-
-    // Filter out null values for gaps in the chart
-    const filteredValues = values.filter(
-      (v) => v !== null && v !== undefined
-    ) as number[];
-
-    if (filteredValues.length === 0) {
       continue;
     }
 
@@ -84,18 +77,51 @@ function buildTraces(
       if (values[i] !== null && values[i] !== undefined) {
         traceValues.push(values[i] as number);
         traceTimes.push(times[i]);
+
+        // Accumulate for average calculation
+        const val = values[i] as number;
+        allModelValues[i] =
+          (allModelValues[i] ?? 0) + val;
+        modelCounts[i]++;
       }
     }
 
+    if (traceValues.length > 0) {
+      traces.push({
+        x: traceTimes,
+        y: traceValues,
+        name: model.label,
+        type: 'scatter',
+        mode: 'lines',
+        line: {
+          color: model.color,
+          width: 2,
+        },
+      });
+    }
+  }
+
+  // Add average trace
+  const averageValues: number[] = [];
+  const averageTimes: string[] = [];
+  for (let i = 0; i < allModelValues.length; i++) {
+    if (modelCounts[i] > 0) {
+      averageValues.push(allModelValues[i] as number / modelCounts[i]);
+      averageTimes.push(times[i]);
+    }
+  }
+
+  if (averageValues.length > 0) {
     traces.push({
-      x: traceTimes,
-      y: traceValues,
-      name: model.label,
+      x: averageTimes,
+      y: averageValues,
+      name: 'Average',
       type: 'scatter',
       mode: 'lines',
       line: {
-        color: model.color,
-        width: 2,
+        color: '#e74c3c',
+        width: 3,
+        dash: 'dash',
       },
     });
   }
@@ -106,6 +132,10 @@ function buildTraces(
 function buildWindTraces(forecast: ForecastResponse): Plotly.Data[] {
   const traces: Plotly.Data[] = [];
   const times = forecast.hourly.time;
+  const allSpeedValues: (number | null)[] = new Array(times.length).fill(null);
+  const speedCounts: number[] = new Array(times.length).fill(0);
+  const allGustValues: (number | null)[] = new Array(times.length).fill(null);
+  const gustCounts: number[] = new Array(times.length).fill(0);
 
   for (const model of MODELS) {
     const speedKey = hourlyKey('wind_speed_10m', model.id);
@@ -123,6 +153,11 @@ function buildWindTraces(forecast: ForecastResponse): Plotly.Data[] {
         if (speedValues[i] !== null && speedValues[i] !== undefined) {
           traceValues.push(speedValues[i] as number);
           traceTimes.push(times[i]);
+
+          // Accumulate for average calculation
+          const val = speedValues[i] as number;
+          allSpeedValues[i] = (allSpeedValues[i] ?? 0) + val;
+          speedCounts[i]++;
         }
       }
 
@@ -150,6 +185,11 @@ function buildWindTraces(forecast: ForecastResponse): Plotly.Data[] {
         if (gustValues[i] !== null && gustValues[i] !== undefined) {
           traceValues.push(gustValues[i] as number);
           traceTimes.push(times[i]);
+
+          // Accumulate for average calculation
+          const val = gustValues[i] as number;
+          allGustValues[i] = (allGustValues[i] ?? 0) + val;
+          gustCounts[i]++;
         }
       }
 
@@ -170,6 +210,56 @@ function buildWindTraces(forecast: ForecastResponse): Plotly.Data[] {
     }
   }
 
+  // Add average speed trace
+  const averageSpeedValues: number[] = [];
+  const averageSpeedTimes: string[] = [];
+  for (let i = 0; i < allSpeedValues.length; i++) {
+    if (speedCounts[i] > 0) {
+      averageSpeedValues.push(allSpeedValues[i] as number / speedCounts[i]);
+      averageSpeedTimes.push(times[i]);
+    }
+  }
+
+  if (averageSpeedValues.length > 0) {
+    traces.push({
+      x: averageSpeedTimes,
+      y: averageSpeedValues,
+      name: 'Average speed',
+      type: 'scatter',
+      mode: 'lines',
+      line: {
+        color: '#e74c3c',
+        width: 3,
+        dash: 'dash',
+      },
+    });
+  }
+
+  // Add average gust trace
+  const averageGustValues: number[] = [];
+  const averageGustTimes: string[] = [];
+  for (let i = 0; i < allGustValues.length; i++) {
+    if (gustCounts[i] > 0) {
+      averageGustValues.push(allGustValues[i] as number / gustCounts[i]);
+      averageGustTimes.push(times[i]);
+    }
+  }
+
+  if (averageGustValues.length > 0) {
+    traces.push({
+      x: averageGustTimes,
+      y: averageGustValues,
+      name: 'Average gust',
+      type: 'scatter',
+      mode: 'lines',
+      line: {
+        color: '#e74c3c',
+        width: 3,
+        dash: 'dash',
+      },
+    });
+  }
+
   return traces;
 }
 
@@ -181,6 +271,26 @@ function renderChart(
   const div = document.getElementById(elementId);
   if (!div) return;
 
+  // Extract average trace if it exists
+  let annotations: Partial<Plotly.Annotation>[] = [];
+  const averageTrace = data.find((trace) => (trace.name === 'Average' || trace.name?.includes('Average')));
+
+  if (averageTrace && Array.isArray(averageTrace.x) && Array.isArray(averageTrace.y)) {
+    annotations = averageTrace.x.map((time, index) => {
+      const value = averageTrace.y?.[index];
+      if (value === undefined || value === null) return null;
+
+      return {
+        x: time,
+        y: value,
+        text: Math.round(value as number).toString(),
+        showarrow: false,
+        font: { size: 10, color: '#e74c3c' },
+        yshift: 10,
+      };
+    }).filter((a) => a !== null) as Partial<Plotly.Annotation>[];
+  }
+
   const layout: Partial<Plotly.Layout> = {
     title: title,
     xaxis: { title: 'Time' },
@@ -188,6 +298,9 @@ function renderChart(
     hovermode: 'x unified',
     margin: { l: 60, r: 20, t: 50, b: 40 },
     height: 380,
+    plot_bgcolor: 'rgba(255, 255, 255, 0)',
+    paper_bgcolor: 'rgba(0, 0, 0, 0)',
+    annotations: annotations,
   };
 
   Plotly.newPlot(div, data, layout, { responsive: true });
