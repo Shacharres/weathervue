@@ -32,6 +32,18 @@ tabButtons.forEach((button) => {
     const activeTab = document.getElementById(tabName!);
     if (activeTab) {
       activeTab.classList.add('active');
+
+      // Trigger Plotly resize for charts in the active tab
+      // This is needed because charts rendered while hidden can't measure container width
+      setTimeout(() => {
+        const charts = activeTab.querySelectorAll('.chart-container');
+        charts.forEach((chart) => {
+          const chartElement = chart as any;
+          if (chartElement.data && chartElement.layout) {
+            (window as any).Plotly?.Plots?.resize?.(chartElement);
+          }
+        });
+      }, 0);
     }
   });
 });
