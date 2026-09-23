@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WeatherVue</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>WeatherVue</h1>
+
+      <form id="search-form">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Enter a city or area name..."
+          autocomplete="off"
+        />
+        <button type="submit">Search</button>
+      </form>
+
+      <ul id="candidates" class="candidates-list"></ul>
+
+      <p id="resolved-location" class="location-header"></p>
+
+      <p id="status" class="status-message" role="status"></p>
+
+      <div id="chart-temperature" class="chart-container"></div>
+      <div id="chart-apparent" class="chart-container"></div>
+      <div id="chart-precipitation" class="chart-container"></div>
+      <div id="chart-wind" class="chart-container"></div>
+
+      <p class="footnote">
+        Some models may not provide data for every location.
+      </p>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
