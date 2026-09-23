@@ -272,7 +272,7 @@ function renderChart(
   if (!div) return;
 
   // Extract average trace if it exists
-  let annotations: Partial<Plotly.Annotation>[] = [];
+  let annotations: object[] = [];
   const averageTrace = data.find((trace) => (trace.name === 'Average' || trace.name?.includes('Average')));
 
   if (averageTrace && Array.isArray(averageTrace.x) && Array.isArray(averageTrace.y)) {
@@ -299,7 +299,7 @@ function renderChart(
         font: { size: 10, color: '#e74c3c' },
         yshift: 20,
       };
-    }).filter((a) => a !== null) as Partial<Plotly.Annotation>[];
+    }).filter((a) => a !== null) as object[];
   }
 
   const layout: Partial<Plotly.Layout> = {
