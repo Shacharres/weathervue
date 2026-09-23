@@ -393,15 +393,31 @@ function renderLegend(): void {
   const avgItem = document.createElement('div');
   avgItem.className = 'legend-item';
 
-  const avgBox = document.createElement('span');
-  avgBox.className = 'legend-color legend-average';
-  avgBox.style.backgroundColor = '#e74c3c';
+  // Create SVG for dashed line
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '8');
+  svg.setAttribute('viewBox', '0 0 20 8');
+  svg.style.display = 'inline-block';
+  svg.style.marginRight = '8px';
+  svg.style.verticalAlign = 'middle';
+
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', '0');
+  line.setAttribute('y1', '4');
+  line.setAttribute('x2', '20');
+  line.setAttribute('y2', '4');
+  line.setAttribute('stroke', '#e74c3c');
+  line.setAttribute('stroke-width', '2');
+  line.setAttribute('stroke-dasharray', '4,4');
+
+  svg.appendChild(line);
 
   const avgLabel = document.createElement('span');
   avgLabel.className = 'legend-label';
   avgLabel.textContent = 'Average';
 
-  avgItem.appendChild(avgBox);
+  avgItem.appendChild(svg);
   avgItem.appendChild(avgLabel);
   legendList.appendChild(avgItem);
 

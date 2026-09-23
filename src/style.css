@@ -321,12 +321,6 @@ button:active {
   display: inline-block;
 }
 
-.legend-color.legend-average {
-  width: 16px;
-  height: 2px;
-  border-radius: 1px;
-  background-image: repeating-linear-gradient(90deg, currentColor 0, currentColor 4px, transparent 4px, transparent 8px);
-}
 
 .legend-label {
   font-size: 14px;
