@@ -316,7 +316,7 @@ function renderChart(
     },
     hovermode: 'x unified',
     margin: isMobile
-      ? { l: 45, r: 15, t: 45, b: 80 }
+      ? { l: 45, r: 15, t: 45, b: 100 }
       : { l: 60, r: 20, t: 50, b: 40 },
     height: isMobile ? 360 : 380,
     plot_bgcolor: 'rgba(255, 255, 255, 0)',
@@ -326,10 +326,13 @@ function renderChart(
       ? {
           orientation: 'h' as const,
           x: 0,
-          y: -0.3,
+          y: -0.5,
           xanchor: 'left' as const,
           yanchor: 'top' as const,
-          font: { size: 10 },
+          font: { size: 9 },
+          bgcolor: 'rgba(255, 255, 255, 0.8)',
+          bordercolor: 'rgba(0, 0, 0, 0.1)',
+          borderwidth: 0,
         }
       : {
           x: 1,
