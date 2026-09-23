@@ -276,9 +276,15 @@ function renderChart(
   // Extract average trace if it exists
   let annotations: object[] = [];
   const averageTrace = data.find((trace) => (trace.name === 'Average' || trace.name?.includes('Average')));
+  const isLongForecast = elementId.includes('long');
 
   if (averageTrace && Array.isArray(averageTrace.x) && Array.isArray(averageTrace.y)) {
     annotations = averageTrace.x.map((time, index) => {
+      // For 7-day forecast, only show annotations every 6 hours
+      if (isLongForecast && index % 6 !== 0) {
+        return null;
+      }
+
       const averageValue = averageTrace.y?.[index];
       if (averageValue === undefined || averageValue === null) return null;
 
@@ -306,12 +312,39 @@ function renderChart(
 
   // Responsive layout based on screen width
   const isMobile = window.innerWidth < 768;
+
+  // For 7-day forecast, show x-axis labels only daily
+  let xaxis: Partial<Plotly.Axis> = {
+    title: 'Time',
+    tickfont: { size: isMobile ? 10 : 12 },
+  };
+
+  if (isLongForecast && averageTrace && Array.isArray(averageTrace.x)) {
+    const tickvals: string[] = [];
+    const ticktext: string[] = [];
+    let lastDay = '';
+
+    averageTrace.x.forEach((time) => {
+      const date = new Date(time as string);
+      const dayKey = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
+
+      if (dayKey !== lastDay) {
+        tickvals.push(time as string);
+        ticktext.push(dayKey);
+        lastDay = dayKey;
+      }
+    });
+
+    xaxis = {
+      ...xaxis,
+      tickvals,
+      ticktext,
+    };
+  }
+
   const layout: Partial<Plotly.Layout> = {
     title: title,
-    xaxis: {
-      title: 'Time',
-      tickfont: { size: isMobile ? 10 : 12 },
-    },
+    xaxis: xaxis,
     yaxis: {
       title: title,
       tickfont: { size: isMobile ? 10 : 12 },
