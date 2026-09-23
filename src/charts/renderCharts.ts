@@ -351,10 +351,10 @@ function renderChart(
     },
     hovermode: 'x unified',
     margin: isMobile
-      ? { l: 45, r: 15, t: 45, b: 100 }
+      ? { l: 45, r: 15, t: 45, b: isLongForecast ? 100 : 60 }
       : { l: 60, r: 20, t: 50, b: 40 },
     autosize: true,
-    height: isMobile ? 360 : 380,
+    height: isMobile ? 420 : 380,
     plot_bgcolor: 'rgba(255, 255, 255, 0)',
     paper_bgcolor: 'rgba(0, 0, 0, 0)',
     annotations: annotations,
