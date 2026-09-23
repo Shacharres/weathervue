@@ -15,6 +15,27 @@ const statusMessage = document.getElementById('status') as HTMLParagraphElement;
 
 let currentCandidates: GeocodingResult[] = [];
 
+// Tab switching
+const tabButtons = document.querySelectorAll('.tab-button');
+const tabContents = document.querySelectorAll('.tab-content');
+
+tabButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    const tabName = button.getAttribute('data-tab');
+
+    // Update active button
+    tabButtons.forEach((btn) => btn.classList.remove('active'));
+    button.classList.add('active');
+
+    // Update active tab content
+    tabContents.forEach((content) => content.classList.remove('active'));
+    const activeTab = document.getElementById(tabName!);
+    if (activeTab) {
+      activeTab.classList.add('active');
+    }
+  });
+});
+
 // Load and display last location if available
 function initializeLastLocation(): void {
   const lastLocation = loadLastLocation();

@@ -9,6 +9,7 @@
   <body>
     <div class="container">
       <h1>WeatherVue</h1>
+      <p class="subtitle">Maybe on average the prediction will be right...</p>
 
       <form id="search-form">
         <input
@@ -26,10 +27,24 @@
 
       <p id="status" class="status-message" role="status"></p>
 
-      <div id="chart-temperature" class="chart-container"></div>
-      <div id="chart-apparent" class="chart-container"></div>
-      <div id="chart-precipitation" class="chart-container"></div>
-      <div id="chart-wind" class="chart-container"></div>
+      <div class="tabs">
+        <button class="tab-button active" data-tab="short-term">30 Hour Forecast</button>
+        <button class="tab-button" data-tab="long-term">7 Day Forecast</button>
+      </div>
+
+      <div id="short-term" class="tab-content active">
+        <div id="chart-temperature-short" class="chart-container"></div>
+        <div id="chart-apparent-short" class="chart-container"></div>
+        <div id="chart-precipitation-short" class="chart-container"></div>
+        <div id="chart-wind-short" class="chart-container"></div>
+      </div>
+
+      <div id="long-term" class="tab-content">
+        <div id="chart-temperature-long" class="chart-container"></div>
+        <div id="chart-apparent-long" class="chart-container"></div>
+        <div id="chart-precipitation-long" class="chart-container"></div>
+        <div id="chart-wind-long" class="chart-container"></div>
+      </div>
 
       <p class="footnote">
         Some models may not provide data for every location.

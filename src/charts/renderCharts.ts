@@ -4,17 +4,52 @@ import { hourlyKey } from '../types';
 import { MODELS } from '../models';
 
 export function renderCharts(forecast: ForecastResponse): void {
-  const temperature = buildTraces(forecast, 'temperature_2m');
-  renderChart('chart-temperature', temperature, 'Temperature (°C)');
+  // Render short-term (30 hours)
+  const shortTermForecast = sliceHours(forecast, 30);
+  const temperatureShort = buildTraces(shortTermForecast, 'temperature_2m');
+  renderChart('chart-temperature-short', temperatureShort, 'Temperature (°C)');
 
-  const apparent = buildTraces(forecast, 'apparent_temperature');
-  renderChart('chart-apparent', apparent, 'Apparent Temperature / Real Feel (°C)');
+  const apparentShort = buildTraces(shortTermForecast, 'apparent_temperature');
+  renderChart('chart-apparent-short', apparentShort, 'Apparent Temperature / Real Feel (°C)');
 
-  const precipitation = buildTraces(forecast, 'precipitation');
-  renderChart('chart-precipitation', precipitation, 'Precipitation (mm)');
+  const precipitationShort = buildTraces(shortTermForecast, 'precipitation');
+  renderChart('chart-precipitation-short', precipitationShort, 'Precipitation (mm)');
 
-  const windTraces = buildWindTraces(forecast);
-  renderChart('chart-wind', windTraces, 'Wind Speed & Gusts (km/h)');
+  const windTracesShort = buildWindTraces(shortTermForecast);
+  renderChart('chart-wind-short', windTracesShort, 'Wind Speed & Gusts (km/h)');
+
+  // Render long-term (7 days)
+  const temperatureLong = buildTraces(forecast, 'temperature_2m');
+  renderChart('chart-temperature-long', temperatureLong, 'Temperature (°C)');
+
+  const apparentLong = buildTraces(forecast, 'apparent_temperature');
+  renderChart('chart-apparent-long', apparentLong, 'Apparent Temperature / Real Feel (°C)');
+
+  const precipitationLong = buildTraces(forecast, 'precipitation');
+  renderChart('chart-precipitation-long', precipitationLong, 'Precipitation (mm)');
+
+  const windTracesLong = buildWindTraces(forecast);
+  renderChart('chart-wind-long', windTracesLong, 'Wind Speed & Gusts (km/h)');
+}
+
+function sliceHours(forecast: ForecastResponse, hours: number): ForecastResponse {
+  const times = forecast.hourly.time.slice(0, hours);
+  const sliced: ForecastResponse = {
+    latitude: forecast.latitude,
+    longitude: forecast.longitude,
+    timezone: forecast.timezone,
+    hourly: { time: times },
+  };
+
+  // Slice all hourly variables to match the time range
+  for (const [key, values] of Object.entries(forecast.hourly)) {
+    if (key === 'time') continue;
+    if (Array.isArray(values)) {
+      sliced.hourly[key] = values.slice(0, hours);
+    }
+  }
+
+  return sliced;
 }
 
 function buildTraces(
