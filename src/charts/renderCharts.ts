@@ -277,16 +277,27 @@ function renderChart(
 
   if (averageTrace && Array.isArray(averageTrace.x) && Array.isArray(averageTrace.y)) {
     annotations = averageTrace.x.map((time, index) => {
-      const value = averageTrace.y?.[index];
-      if (value === undefined || value === null) return null;
+      const averageValue = averageTrace.y?.[index];
+      if (averageValue === undefined || averageValue === null) return null;
+
+      // Find the maximum y value at this x position across all traces
+      let maxValue = averageValue as number;
+      for (const trace of data) {
+        if (Array.isArray(trace.x) && Array.isArray(trace.y)) {
+          const xIndex = trace.x.indexOf(time);
+          if (xIndex !== -1 && trace.y[xIndex] !== null && trace.y[xIndex] !== undefined) {
+            maxValue = Math.max(maxValue, trace.y[xIndex] as number);
+          }
+        }
+      }
 
       return {
         x: time,
-        y: value,
-        text: Math.round(value as number).toString(),
+        y: maxValue,
+        text: Math.round(averageValue as number).toString(),
         showarrow: false,
         font: { size: 10, color: '#e74c3c' },
-        yshift: 10,
+        yshift: 20,
       };
     }).filter((a) => a !== null) as Partial<Plotly.Annotation>[];
   }

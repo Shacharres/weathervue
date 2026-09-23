@@ -220,25 +220,58 @@ button:active {
 }
 
 .tab-button {
-  padding: 14px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  background-color: transparent;
-  color: var(--text-light);
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  padding: 14px 24px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--text-light) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transition: color 0.3s ease !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  transform: none !important;
 }
 
 .tab-button:hover {
-  color: var(--primary);
+  color: var(--primary) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.tab-button:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.tab-button:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .tab-button.active {
-  color: var(--primary);
+  color: var(--primary) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .tab-content {
