@@ -314,7 +314,7 @@ function renderChart(
   const isMobile = window.innerWidth < 768;
 
   // For 7-day forecast, show x-axis labels only daily
-  let xaxis: Partial<Plotly.Axis> = {
+  let xaxis: any = {
     title: 'Time',
     tickfont: { size: isMobile ? 10 : 12 },
   };
