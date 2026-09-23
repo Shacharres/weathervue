@@ -8,6 +8,13 @@ WeatherVue lets you enter a city or area name and instantly see forecast predict
 
 The app saves your last-searched location locally, so it's ready to go when you return.
 
+### Features
+
+- **Multiple forecast tabs**: 30-hour and 7-day forecasts in tabbed views
+- **Mobile responsive**: Fully optimized for desktop and mobile devices with adaptive chart layouts
+- **Interactive charts**: Zoom, pan, and hover to inspect detailed forecast data
+- **Model comparison**: Side-by-side comparison of multiple weather prediction models with averaged forecast
+
 ## Live Demo
 
 [weathervue on GitHub Pages](https://[your-username].github.io/weathervue/) (update this URL after deploying)
@@ -58,9 +65,10 @@ The site will be live at `https://<your-username>.github.io/weathervue/`
 ## Architecture
 
 - **Frontend**: Vite + vanilla TypeScript
-- **Charts**: Plotly.js
+- **Charts**: Plotly.js with responsive mobile layout adaptation
 - **Storage**: Browser localStorage (last searched location)
-- **Styling**: Plain CSS
+- **Styling**: Plain CSS with mobile-first responsive design
+- **Responsive Design**: Charts automatically adapt to viewport size with optimized margins, legend positioning, and font sizes for both desktop and mobile screens
 
 ## License
 
