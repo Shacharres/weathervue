@@ -1,6 +1,6 @@
 # WeatherVue
 
-Compare weather forecast predictions from multiple weather models in one place.
+Compare weather forecast predictions from multiple weather models in one place. They each tend to get it wrong, but maybe on average...?
 
 ## About
 
@@ -17,7 +17,7 @@ The app saves your last-searched location locally, so it's ready to go when you 
 
 ## Live Demo
 
-[weathervue on GitHub Pages](https://[your-username].github.io/weathervue/) (update this URL after deploying)
+[weathervue on GitHub Pages](https://shacharres.github.io/weathervue/)
 
 ## Development
 
