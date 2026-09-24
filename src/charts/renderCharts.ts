@@ -6,8 +6,20 @@ import { MODELS } from '../models';
 export function renderCharts(forecast: ForecastResponse): void {
   renderLegend();
 
-  // Render 2-hour summary
-  renderTwoHourSummary(forecast);
+  // Render 2-hour summary and charts (from current time)
+  const twoHourForecast = sliceFromNow(forecast, 2);
+  renderTwoHourSummary(twoHourForecast);
+  const temperature2h = buildTraces(twoHourForecast, 'temperature_2m');
+  renderChart('chart-temperature-2h', temperature2h, 'Temperature (°C)');
+
+  const apparent2h = buildTraces(twoHourForecast, 'apparent_temperature');
+  renderChart('chart-apparent-2h', apparent2h, 'Apparent Temperature / Real Feel (°C)');
+
+  const precipitation2h = buildTraces(twoHourForecast, 'precipitation');
+  renderChart('chart-precipitation-2h', precipitation2h, 'Precipitation (mm)');
+
+  const wind2h = buildWindTraces(twoHourForecast);
+  renderChart('chart-wind-2h', wind2h, 'Wind Speed & Gusts (km/h)');
 
   // Render short-term (30 hours)
   const shortTermForecast = sliceHours(forecast, 30);
@@ -55,6 +67,156 @@ function sliceHours(forecast: ForecastResponse, hours: number): ForecastResponse
   }
 
   return sliced;
+}
+
+function sliceFromNow(forecast: ForecastResponse, hours: number): ForecastResponse {
+  const times = forecast.hourly.time;
+  const now = new Date();
+
+  // Create a simple time string for comparison (YYYY-MM-DDTHH)
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hour = String(now.getHours()).padStart(2, '0');
+  const currentTimePrefix = `${year}-${month}-${day}T${hour}`;
+
+  // Find the index where forecast time >= current time
+  let startIndex = 0;
+  for (let i = 0; i < times.length; i++) {
+    if (times[i] >= currentTimePrefix) {
+      startIndex = i;
+      break;
+    }
+  }
+
+  // Get approximately 'hours' worth of data points (hourly data = 1 point per hour)
+  const endIndex = Math.min(startIndex + Math.ceil(hours) + 1, times.length);
+
+  const slicedTimes = times.slice(startIndex, endIndex);
+  const sliced: ForecastResponse = {
+    latitude: forecast.latitude,
+    longitude: forecast.longitude,
+    timezone: forecast.timezone,
+    hourly: { time: slicedTimes },
+  };
+
+  // Slice all hourly variables to match the time range
+  for (const [key, values] of Object.entries(forecast.hourly)) {
+    if (key === 'time') continue;
+    if (Array.isArray(values)) {
+      sliced.hourly[key] = values.slice(startIndex, endIndex);
+    }
+  }
+
+  return sliced;
+}
+
+function renderTwoHourSummary(forecast: ForecastResponse): void {
+  const container = document.getElementById('forecast-summary');
+  if (!container) return;
+
+  const times = forecast.hourly.time;
+
+  if (times.length < 1) {
+    container.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Not enough data for 2-hour forecast</p>';
+    return;
+  }
+
+  const tempKey = hourlyKey('temperature_2m', MODELS[0].id);
+  const precipKey = hourlyKey('precipitation_probability', MODELS[0].id);
+  const windKey = hourlyKey('wind_speed_10m', MODELS[0].id);
+
+  const temps = forecast.hourly[tempKey] as (number | null)[];
+  const precips = forecast.hourly[precipKey] as (number | null)[];
+  const winds = forecast.hourly[windKey] as (number | null)[];
+
+  const startTemp = temps?.[0];
+  const endTemp = temps?.[temps.length - 1];
+  const maxPrecip = precips?.reduce((max, val) => {
+    return val && val > (max ?? 0) ? val : max;
+  }, 0 as number | null) ?? 0;
+  const avgWind = winds && winds.filter((w) => w !== null).length > 0
+    ? winds.reduce((sum, val) => sum + (val ?? 0), 0) / winds.filter((w) => w !== null).length
+    : 0;
+
+  // Calculate additional metrics
+  const maxTemp = Math.max(...temps.filter((t) => t !== null) as number[]);
+  const minTemp = Math.min(...temps.filter((t) => t !== null) as number[]);
+  const totalPrecipitation = precips
+    ? precips.reduce((sum, val) => sum + (val ?? 0), 0)
+    : 0;
+  const maxWind = Math.max(...winds.filter((w) => w !== null) as number[]);
+
+  let prediction = '';
+  let icon = '⛅';
+  const predictions: string[] = [];
+
+  if (maxPrecip > 50) {
+    predictions.push('rain expected');
+    icon = '🌧️';
+  } else if (maxPrecip > 20) {
+    predictions.push('might rain soon');
+  }
+
+  if (startTemp !== null && endTemp !== null) {
+    const tempChange = endTemp - startTemp;
+    if (tempChange > 1.5) {
+      predictions.push('getting warmer');
+      icon = '☀️';
+    } else if (tempChange < -1.5) {
+      predictions.push('getting cooler');
+      icon = '❄️';
+    } else {
+      if (!predictions.length) predictions.push('steady temperature');
+    }
+  }
+
+  if (avgWind > 20) {
+    predictions.push('windy conditions');
+  } else if (avgWind > 10) {
+    predictions.push('moderate winds');
+  }
+
+  prediction = predictions.join(', ');
+  if (!prediction) prediction = 'mostly stable conditions';
+
+  container.innerHTML = `
+    <div class="forecast-summary-icon">${icon}</div>
+    <div class="forecast-summary-text">${prediction}</div>
+    <div class="forecast-summary-details">
+      <div class="forecast-detail-item">
+        <div class="forecast-detail-label">Current Temp</div>
+        <div class="forecast-detail-value">${startTemp !== null ? Math.round(startTemp) : '—'}°C</div>
+      </div>
+      <div class="forecast-detail-item">
+        <div class="forecast-detail-label">Rain Prob.</div>
+        <div class="forecast-detail-value">${Math.round(maxPrecip)}%</div>
+      </div>
+      <div class="forecast-detail-item">
+        <div class="forecast-detail-label">Avg Wind</div>
+        <div class="forecast-detail-value">${Math.round(avgWind)} km/h</div>
+      </div>
+    </div>
+
+    <div class="forecast-metrics-grid">
+      <div class="metric-box">
+        <div class="metric-label">Temperature Range</div>
+        <div class="metric-value">${Math.round(minTemp)}°C — ${Math.round(maxTemp)}°C</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Temperature Change</div>
+        <div class="metric-value">${startTemp !== null && endTemp !== null ? (endTemp > startTemp ? '+' : '') + Math.round((endTemp - startTemp) * 10) / 10 : '—'}°C</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Precipitation Amount</div>
+        <div class="metric-value">${Math.round(totalPrecipitation * 10) / 10} mm</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Max Wind Speed</div>
+        <div class="metric-value">${Math.round(maxWind)} km/h</div>
+      </div>
+    </div>
+  `;
 }
 
 function buildTraces(
@@ -365,115 +527,6 @@ function renderChart(
   };
 
   Plotly.newPlot(div, data, layout, { responsive: true });
-}
-
-function renderTwoHourSummary(forecast: ForecastResponse): void {
-  const container = document.getElementById('forecast-summary');
-  if (!container) return;
-
-  const twoHourForecast = sliceHours(forecast, 2);
-  const times = twoHourForecast.hourly.time;
-
-  if (times.length < 2) {
-    container.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Not enough data for 2-hour forecast</p>';
-    return;
-  }
-
-  const tempKey = hourlyKey('temperature_2m', MODELS[0].id);
-  const precipKey = hourlyKey('precipitation_probability', MODELS[0].id);
-  const windKey = hourlyKey('wind_speed_10m', MODELS[0].id);
-
-  const temps = twoHourForecast.hourly[tempKey] as (number | null)[];
-  const precips = twoHourForecast.hourly[precipKey] as (number | null)[];
-  const winds = twoHourForecast.hourly[windKey] as (number | null)[];
-
-  const startTemp = temps?.[0];
-  const endTemp = temps?.[temps.length - 1];
-  const maxPrecip = precips?.reduce((max, val) => {
-    return val && val > (max ?? 0) ? val : max;
-  }, 0 as number | null) ?? 0;
-  const avgWind = winds && winds.filter((w) => w !== null).length > 0
-    ? winds.reduce((sum, val) => sum + (val ?? 0), 0) / winds.filter((w) => w !== null).length
-    : 0;
-
-  let prediction = '';
-  let icon = '⛅';
-  const predictions: string[] = [];
-
-  if (maxPrecip > 50) {
-    predictions.push('rain expected');
-    icon = '🌧️';
-  } else if (maxPrecip > 20) {
-    predictions.push('might rain soon');
-  }
-
-  if (startTemp !== null && endTemp !== null) {
-    const tempChange = endTemp - startTemp;
-    if (tempChange > 1.5) {
-      predictions.push('getting warmer');
-      icon = '☀️';
-    } else if (tempChange < -1.5) {
-      predictions.push('getting cooler');
-      icon = '❄️';
-    } else {
-      if (!predictions.length) predictions.push('steady temperature');
-    }
-  }
-
-  if (avgWind > 20) {
-    predictions.push('windy conditions');
-  } else if (avgWind > 10) {
-    predictions.push('moderate winds');
-  }
-
-  prediction = predictions.join(', ');
-  if (!prediction) prediction = 'mostly stable conditions';
-
-  // Calculate additional metrics
-  const maxTemp = Math.max(...temps.filter((t) => t !== null) as number[]);
-  const minTemp = Math.min(...temps.filter((t) => t !== null) as number[]);
-  const totalPrecipitation = precips
-    ? precips.reduce((sum, val) => sum + (val ?? 0), 0)
-    : 0;
-  const maxWind = Math.max(...winds.filter((w) => w !== null) as number[]);
-
-  container.innerHTML = `
-    <div class="forecast-summary-icon">${icon}</div>
-    <div class="forecast-summary-text">${prediction}</div>
-    <div class="forecast-summary-details">
-      <div class="forecast-detail-item">
-        <div class="forecast-detail-label">Current Temp</div>
-        <div class="forecast-detail-value">${startTemp !== null ? Math.round(startTemp) : '—'}°C</div>
-      </div>
-      <div class="forecast-detail-item">
-        <div class="forecast-detail-label">Rain Prob.</div>
-        <div class="forecast-detail-value">${Math.round(maxPrecip)}%</div>
-      </div>
-      <div class="forecast-detail-item">
-        <div class="forecast-detail-label">Avg Wind</div>
-        <div class="forecast-detail-value">${Math.round(avgWind)} km/h</div>
-      </div>
-    </div>
-
-    <div class="forecast-metrics-grid">
-      <div class="metric-box">
-        <div class="metric-label">Temperature Range</div>
-        <div class="metric-value">${Math.round(minTemp)}°C — ${Math.round(maxTemp)}°C</div>
-      </div>
-      <div class="metric-box">
-        <div class="metric-label">Temperature Change</div>
-        <div class="metric-value">${startTemp !== null && endTemp !== null ? (endTemp > startTemp ? '+' : '') + Math.round((endTemp - startTemp) * 10) / 10 : '—'}°C</div>
-      </div>
-      <div class="metric-box">
-        <div class="metric-label">Precipitation Amount</div>
-        <div class="metric-value">${Math.round(totalPrecipitation * 10) / 10} mm</div>
-      </div>
-      <div class="metric-box">
-        <div class="metric-label">Max Wind Speed</div>
-        <div class="metric-value">${Math.round(maxWind)} km/h</div>
-      </div>
-    </div>
-  `;
 }
 
 function renderLegend(): void {
