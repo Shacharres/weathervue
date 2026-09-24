@@ -6,6 +6,9 @@ import { MODELS } from '../models';
 export function renderCharts(forecast: ForecastResponse): void {
   renderLegend();
 
+  // Render 2-hour summary
+  renderTwoHourSummary(forecast);
+
   // Render short-term (30 hours)
   const shortTermForecast = sliceHours(forecast, 30);
   const temperatureShort = buildTraces(shortTermForecast, 'temperature_2m');
@@ -362,6 +365,88 @@ function renderChart(
   };
 
   Plotly.newPlot(div, data, layout, { responsive: true });
+}
+
+function renderTwoHourSummary(forecast: ForecastResponse): void {
+  const container = document.getElementById('forecast-summary');
+  if (!container) return;
+
+  const twoHourForecast = sliceHours(forecast, 2);
+  const times = twoHourForecast.hourly.time;
+
+  if (times.length < 2) {
+    container.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Not enough data for 2-hour forecast</p>';
+    return;
+  }
+
+  const tempKey = hourlyKey('temperature_2m', MODELS[0].id);
+  const precipKey = hourlyKey('precipitation_probability', MODELS[0].id);
+  const windKey = hourlyKey('wind_speed_10m', MODELS[0].id);
+
+  const temps = twoHourForecast.hourly[tempKey] as (number | null)[];
+  const precips = twoHourForecast.hourly[precipKey] as (number | null)[];
+  const winds = twoHourForecast.hourly[windKey] as (number | null)[];
+
+  const startTemp = temps?.[0];
+  const endTemp = temps?.[temps.length - 1];
+  const maxPrecip = precips?.reduce((max, val) => {
+    return val && val > (max ?? 0) ? val : max;
+  }, 0 as number | null) ?? 0;
+  const avgWind = winds && winds.filter((w) => w !== null).length > 0
+    ? winds.reduce((sum, val) => sum + (val ?? 0), 0) / winds.filter((w) => w !== null).length
+    : 0;
+
+  let prediction = '';
+  let icon = '⛅';
+  const predictions: string[] = [];
+
+  if (maxPrecip > 50) {
+    predictions.push('rain expected');
+    icon = '🌧️';
+  } else if (maxPrecip > 20) {
+    predictions.push('might rain soon');
+  }
+
+  if (startTemp !== null && endTemp !== null) {
+    const tempChange = endTemp - startTemp;
+    if (tempChange > 1.5) {
+      predictions.push('getting warmer');
+      icon = '☀️';
+    } else if (tempChange < -1.5) {
+      predictions.push('getting cooler');
+      icon = '❄️';
+    } else {
+      if (!predictions.length) predictions.push('steady temperature');
+    }
+  }
+
+  if (avgWind > 20) {
+    predictions.push('windy conditions');
+  } else if (avgWind > 10) {
+    predictions.push('moderate winds');
+  }
+
+  prediction = predictions.join(', ');
+  if (!prediction) prediction = 'mostly stable conditions';
+
+  container.innerHTML = `
+    <div class="forecast-summary-icon">${icon}</div>
+    <div class="forecast-summary-text">${prediction}</div>
+    <div class="forecast-summary-details">
+      <div class="forecast-detail-item">
+        <div class="forecast-detail-label">Current Temp</div>
+        <div class="forecast-detail-value">${startTemp !== null ? Math.round(startTemp) : '—'}°C</div>
+      </div>
+      <div class="forecast-detail-item">
+        <div class="forecast-detail-label">Rain Prob.</div>
+        <div class="forecast-detail-value">${Math.round(maxPrecip)}%</div>
+      </div>
+      <div class="forecast-detail-item">
+        <div class="forecast-detail-label">Avg Wind</div>
+        <div class="forecast-detail-value">${Math.round(avgWind)} km/h</div>
+      </div>
+    </div>
+  `;
 }
 
 function renderLegend(): void {

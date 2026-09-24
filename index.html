@@ -30,11 +30,16 @@
       <div id="chart-legend" class="chart-legend"></div>
 
       <div class="tabs">
-        <button class="tab-button active" data-tab="short-term">30 Hour Forecast</button>
+        <button class="tab-button active" data-tab="next-2h">Next 2 Hours</button>
+        <button class="tab-button" data-tab="short-term">30 Hour Forecast</button>
         <button class="tab-button" data-tab="long-term">7 Day Forecast</button>
       </div>
 
-      <div id="short-term" class="tab-content active">
+      <div id="next-2h" class="tab-content active">
+        <div class="forecast-summary-card" id="forecast-summary"></div>
+      </div>
+
+      <div id="short-term" class="tab-content">
         <div id="chart-temperature-short" class="chart-container"></div>
         <div id="chart-apparent-short" class="chart-container"></div>
         <div id="chart-precipitation-short" class="chart-container"></div>

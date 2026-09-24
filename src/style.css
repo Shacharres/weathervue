@@ -36,6 +36,15 @@
     --shadow: rgba(0, 0, 0, 0.3);
     --shadow-lg: rgba(0, 0, 0, 0.4);
   }
+
+  .forecast-detail-item {
+    background-color: rgba(26, 26, 26, 0.7) !important;
+    border-color: #3a3a3a !important;
+  }
+
+  .forecast-summary-card {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15) 0%, rgba(52, 152, 219, 0.05) 100%) !important;
+  }
 }
 
 * {
@@ -282,6 +291,58 @@ button:active {
   display: block;
 }
 
+.forecast-summary-card {
+  width: 100%;
+  margin: 28px 0;
+  padding: 32px;
+  background: linear-gradient(135deg, var(--primary-light) 0%, #f0f8ff 100%);
+  border-radius: 12px;
+  border: 2px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+  text-align: center;
+}
+
+.forecast-summary-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.forecast-summary-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.forecast-summary-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.forecast-detail-item {
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.forecast-detail-label {
+  font-size: 12px;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.forecast-detail-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
 .chart-container {
   width: 100%;
   margin: 28px 0;
@@ -401,6 +462,35 @@ button:active {
   .tab-button {
     padding: 12px 16px;
     font-size: 12px;
+  }
+
+  .forecast-summary-card {
+    padding: 20px;
+    margin: 20px 0;
+  }
+
+  .forecast-summary-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+
+  .forecast-summary-text {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  .forecast-summary-details {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .forecast-detail-item {
+    padding: 10px;
+  }
+
+  .forecast-detail-value {
+    font-size: 18px;
   }
 
   .chart-container {
