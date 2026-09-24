@@ -477,6 +477,7 @@ function renderChart(
 
   // Responsive layout based on screen width
   const isMobile = window.innerWidth < 768;
+  const isTwoHourForecast = elementId.includes('2h');
 
   // For 7-day forecast, show x-axis labels only daily
   let xaxis: any = {
@@ -519,7 +520,7 @@ function renderChart(
       ? { l: 45, r: 15, t: 45, b: isLongForecast ? 100 : 60 }
       : { l: 60, r: 20, t: 50, b: 40 },
     autosize: true,
-    height: isMobile ? 420 : 380,
+    height: isMobile ? (isTwoHourForecast ? 380 : 420) : 380,
     plot_bgcolor: 'rgba(255, 255, 255, 0)',
     paper_bgcolor: 'rgba(0, 0, 0, 0)',
     annotations: annotations,
