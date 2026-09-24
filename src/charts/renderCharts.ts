@@ -136,14 +136,14 @@ function renderTwoHourSummary(forecast: ForecastResponse): void {
     return val && val > (max ?? 0) ? val : max;
   }, 0 as number | null) ?? 0;
   const avgWind = winds && winds.filter((w) => w !== null).length > 0
-    ? winds.reduce((sum, val) => sum + (val ?? 0), 0) / winds.filter((w) => w !== null).length
+    ? winds.reduce((sum: number, val) => sum + (val ?? 0), 0) / winds.filter((w) => w !== null).length
     : 0;
 
   // Calculate additional metrics
   const maxTemp = Math.max(...temps.filter((t) => t !== null) as number[]);
   const minTemp = Math.min(...temps.filter((t) => t !== null) as number[]);
   const totalPrecipitation = precips
-    ? precips.reduce((sum, val) => sum + (val ?? 0), 0)
+    ? precips.reduce((sum: number, val) => sum + (val ?? 0), 0)
     : 0;
   const maxWind = Math.max(...winds.filter((w) => w !== null) as number[]);
 
