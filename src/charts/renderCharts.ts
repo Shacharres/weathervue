@@ -429,6 +429,14 @@ function renderTwoHourSummary(forecast: ForecastResponse): void {
   prediction = predictions.join(', ');
   if (!prediction) prediction = 'mostly stable conditions';
 
+  // Calculate additional metrics
+  const maxTemp = Math.max(...temps.filter((t) => t !== null) as number[]);
+  const minTemp = Math.min(...temps.filter((t) => t !== null) as number[]);
+  const totalPrecipitation = precips
+    ? precips.reduce((sum, val) => sum + (val ?? 0), 0)
+    : 0;
+  const maxWind = Math.max(...winds.filter((w) => w !== null) as number[]);
+
   container.innerHTML = `
     <div class="forecast-summary-icon">${icon}</div>
     <div class="forecast-summary-text">${prediction}</div>
@@ -444,6 +452,25 @@ function renderTwoHourSummary(forecast: ForecastResponse): void {
       <div class="forecast-detail-item">
         <div class="forecast-detail-label">Avg Wind</div>
         <div class="forecast-detail-value">${Math.round(avgWind)} km/h</div>
+      </div>
+    </div>
+
+    <div class="forecast-metrics-grid">
+      <div class="metric-box">
+        <div class="metric-label">Temperature Range</div>
+        <div class="metric-value">${Math.round(minTemp)}°C — ${Math.round(maxTemp)}°C</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Temperature Change</div>
+        <div class="metric-value">${startTemp !== null && endTemp !== null ? (endTemp > startTemp ? '+' : '') + Math.round((endTemp - startTemp) * 10) / 10 : '—'}°C</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Precipitation Amount</div>
+        <div class="metric-value">${Math.round(totalPrecipitation * 10) / 10} mm</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Max Wind Speed</div>
+        <div class="metric-value">${Math.round(maxWind)} km/h</div>
       </div>
     </div>
   `;
