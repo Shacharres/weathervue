@@ -1,7 +1,7 @@
 import './style.css';
 import { geocodeCity, GeocodingError } from './api/geocoding';
 import { fetchForecast, ForecastError } from './api/forecast';
-import { renderCharts } from './charts/renderCharts';
+import { renderCharts, resizeCharts } from './charts/renderCharts';
 import { loadLastLocation, saveLastLocation } from './state/persistence';
 import type { GeocodingResult } from './types';
 
@@ -33,17 +33,8 @@ tabButtons.forEach((button) => {
     if (activeTab) {
       activeTab.classList.add('active');
 
-      // Trigger Plotly resize for charts in the active tab
-      // This is needed because charts rendered while hidden can't measure container width
-      setTimeout(() => {
-        const charts = activeTab.querySelectorAll('.chart-container');
-        charts.forEach((chart) => {
-          const chartElement = chart as any;
-          if (chartElement.data && chartElement.layout) {
-            (window as any).Plotly?.Plots?.resize?.(chartElement);
-          }
-        });
-      }, 0);
+      // Charts rendered while hidden measured a 0/default width; resize now that they're visible
+      setTimeout(() => resizeCharts(activeTab), 0);
     }
   });
 });

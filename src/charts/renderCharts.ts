@@ -3,50 +3,38 @@ import type { ForecastResponse, HourlyVariable } from '../types';
 import { hourlyKey } from '../types';
 import { MODELS } from '../models';
 
+const CHART_KINDS: { id: string; title: string; variable?: HourlyVariable }[] = [
+  { id: 'temperature', title: 'Temperature (°C)', variable: 'temperature_2m' },
+  { id: 'apparent', title: 'Apparent Temperature / Real Feel (°C)', variable: 'apparent_temperature' },
+  { id: 'precipitation', title: 'Precipitation (mm)', variable: 'precipitation' },
+  { id: 'wind', title: 'Wind Speed & Gusts (km/h)' },
+];
+
 export function renderCharts(forecast: ForecastResponse): void {
   renderLegend();
 
-  // Render 2-hour summary and charts (from current time)
   const twoHourForecast = sliceFromNow(forecast, 2);
   renderTwoHourSummary(twoHourForecast);
-  const temperature2h = buildTraces(twoHourForecast, 'temperature_2m');
-  renderChart('chart-temperature-2h', temperature2h, 'Temperature (°C)');
 
-  const apparent2h = buildTraces(twoHourForecast, 'apparent_temperature');
-  renderChart('chart-apparent-2h', apparent2h, 'Apparent Temperature / Real Feel (°C)');
+  const ranges: [string, ForecastResponse][] = [
+    ['2h', twoHourForecast],
+    ['short', sliceHours(forecast, 30)],
+    ['long', forecast],
+  ];
 
-  const precipitation2h = buildTraces(twoHourForecast, 'precipitation');
-  renderChart('chart-precipitation-2h', precipitation2h, 'Precipitation (mm)');
+  for (const [suffix, data] of ranges) {
+    for (const kind of CHART_KINDS) {
+      const traces = kind.variable ? buildTraces(data, kind.variable) : buildWindTraces(data);
+      renderChart(`chart-${kind.id}-${suffix}`, traces, kind.title);
+    }
+  }
+}
 
-  const wind2h = buildWindTraces(twoHourForecast);
-  renderChart('chart-wind-2h', wind2h, 'Wind Speed & Gusts (km/h)');
-
-  // Render short-term (30 hours)
-  const shortTermForecast = sliceHours(forecast, 30);
-  const temperatureShort = buildTraces(shortTermForecast, 'temperature_2m');
-  renderChart('chart-temperature-short', temperatureShort, 'Temperature (°C)');
-
-  const apparentShort = buildTraces(shortTermForecast, 'apparent_temperature');
-  renderChart('chart-apparent-short', apparentShort, 'Apparent Temperature / Real Feel (°C)');
-
-  const precipitationShort = buildTraces(shortTermForecast, 'precipitation');
-  renderChart('chart-precipitation-short', precipitationShort, 'Precipitation (mm)');
-
-  const windTracesShort = buildWindTraces(shortTermForecast);
-  renderChart('chart-wind-short', windTracesShort, 'Wind Speed & Gusts (km/h)');
-
-  // Render long-term (7 days)
-  const temperatureLong = buildTraces(forecast, 'temperature_2m');
-  renderChart('chart-temperature-long', temperatureLong, 'Temperature (°C)');
-
-  const apparentLong = buildTraces(forecast, 'apparent_temperature');
-  renderChart('chart-apparent-long', apparentLong, 'Apparent Temperature / Real Feel (°C)');
-
-  const precipitationLong = buildTraces(forecast, 'precipitation');
-  renderChart('chart-precipitation-long', precipitationLong, 'Precipitation (mm)');
-
-  const windTracesLong = buildWindTraces(forecast);
-  renderChart('chart-wind-long', windTracesLong, 'Wind Speed & Gusts (km/h)');
+/** Re-render/resize every chart (used when a hidden tab becomes visible). */
+export function resizeCharts(root: ParentNode): void {
+  root.querySelectorAll<HTMLElement>('.chart-container').forEach((el) => {
+    if ((el as any).data) Plotly.Plots.resize(el);
+  });
 }
 
 function sliceHours(forecast: ForecastResponse, hours: number): ForecastResponse {
@@ -219,215 +207,83 @@ function renderTwoHourSummary(forecast: ForecastResponse): void {
   `;
 }
 
-function buildTraces(
-  forecast: ForecastResponse,
-  variable: HourlyVariable
-): Plotly.Data[] {
+interface SeriesSpec {
+  variable: HourlyVariable;
+  suffix: string; // appended to model label / "Average"
+  dash?: 'dot';
+}
+
+function buildTraces(forecast: ForecastResponse, variable: HourlyVariable): Plotly.Data[] {
+  return buildSeries(forecast, [{ variable, suffix: '' }]);
+}
+
+function buildWindTraces(forecast: ForecastResponse): Plotly.Data[] {
+  return buildSeries(forecast, [
+    { variable: 'wind_speed_10m', suffix: ' speed' },
+    { variable: 'wind_gusts_10m', suffix: ' gust', dash: 'dot' },
+  ]);
+}
+
+/** One line per model per spec, followed by one dashed average line per spec. */
+function buildSeries(forecast: ForecastResponse, specs: SeriesSpec[]): Plotly.Data[] {
   const traces: Plotly.Data[] = [];
+  const averages: Plotly.Data[] = [];
   const times = forecast.hourly.time;
-  const allModelValues: (number | null)[] = new Array(times.length).fill(null);
-  const modelCounts: number[] = new Array(times.length).fill(0);
+  const multi = specs.length > 1;
 
-  for (const model of MODELS) {
-    const key = hourlyKey(variable, model.id);
-    const values = forecast.hourly[key];
+  for (const spec of specs) {
+    const sums: number[] = new Array(times.length).fill(0);
+    const counts: number[] = new Array(times.length).fill(0);
 
-    if (!values || !Array.isArray(values)) {
-      continue;
-    }
+    for (const model of MODELS) {
+      const values = forecast.hourly[hourlyKey(spec.variable, model.id)];
+      if (!values || !Array.isArray(values)) continue;
 
-    // Create trace with corresponding time indices
-    const traceValues: (number | null)[] = [];
-    const traceTimes: string[] = [];
+      const x: string[] = [];
+      const y: number[] = [];
+      for (let i = 0; i < values.length; i++) {
+        const v = values[i];
+        if (v === null || v === undefined) continue;
+        x.push(times[i]);
+        y.push(v as number);
+        sums[i] += v as number;
+        counts[i]++;
+      }
 
-    for (let i = 0; i < values.length; i++) {
-      if (values[i] !== null && values[i] !== undefined) {
-        traceValues.push(values[i] as number);
-        traceTimes.push(times[i]);
-
-        // Accumulate for average calculation
-        const val = values[i] as number;
-        allModelValues[i] =
-          (allModelValues[i] ?? 0) + val;
-        modelCounts[i]++;
+      if (y.length > 0) {
+        traces.push({
+          x,
+          y,
+          // Speed lines keep the plain model label; gusts get a suffix
+          name: spec.dash ? `${model.label}${spec.suffix}` : model.label,
+          type: 'scatter',
+          mode: 'lines',
+          line: { color: model.color, width: 2, ...(spec.dash && { dash: spec.dash }) },
+        });
       }
     }
 
-    if (traceValues.length > 0) {
-      traces.push({
-        x: traceTimes,
-        y: traceValues,
-        name: model.label,
+    const x: string[] = [];
+    const y: number[] = [];
+    for (let i = 0; i < times.length; i++) {
+      if (counts[i] > 0) {
+        x.push(times[i]);
+        y.push(sums[i] / counts[i]);
+      }
+    }
+    if (y.length > 0) {
+      averages.push({
+        x,
+        y,
+        name: multi ? `Average${spec.suffix}` : 'Average',
         type: 'scatter',
         mode: 'lines',
-        line: {
-          color: model.color,
-          width: 2,
-        },
+        line: { color: '#e74c3c', width: 3, dash: 'dash' },
       });
     }
   }
 
-  // Add average trace
-  const averageValues: number[] = [];
-  const averageTimes: string[] = [];
-  for (let i = 0; i < allModelValues.length; i++) {
-    if (modelCounts[i] > 0) {
-      averageValues.push(allModelValues[i] as number / modelCounts[i]);
-      averageTimes.push(times[i]);
-    }
-  }
-
-  if (averageValues.length > 0) {
-    traces.push({
-      x: averageTimes,
-      y: averageValues,
-      name: 'Average',
-      type: 'scatter',
-      mode: 'lines',
-      line: {
-        color: '#e74c3c',
-        width: 3,
-        dash: 'dash',
-      },
-    });
-  }
-
-  return traces;
-}
-
-function buildWindTraces(forecast: ForecastResponse): Plotly.Data[] {
-  const traces: Plotly.Data[] = [];
-  const times = forecast.hourly.time;
-  const allSpeedValues: (number | null)[] = new Array(times.length).fill(null);
-  const speedCounts: number[] = new Array(times.length).fill(0);
-  const allGustValues: (number | null)[] = new Array(times.length).fill(null);
-  const gustCounts: number[] = new Array(times.length).fill(0);
-
-  for (const model of MODELS) {
-    const speedKey = hourlyKey('wind_speed_10m', model.id);
-    const gustKey = hourlyKey('wind_gusts_10m', model.id);
-
-    const speedValues = forecast.hourly[speedKey];
-    const gustValues = forecast.hourly[gustKey];
-
-    // Speed trace
-    if (speedValues && Array.isArray(speedValues)) {
-      const traceValues: (number | null)[] = [];
-      const traceTimes: string[] = [];
-
-      for (let i = 0; i < speedValues.length; i++) {
-        if (speedValues[i] !== null && speedValues[i] !== undefined) {
-          traceValues.push(speedValues[i] as number);
-          traceTimes.push(times[i]);
-
-          // Accumulate for average calculation
-          const val = speedValues[i] as number;
-          allSpeedValues[i] = (allSpeedValues[i] ?? 0) + val;
-          speedCounts[i]++;
-        }
-      }
-
-      if (traceValues.length > 0) {
-        traces.push({
-          x: traceTimes,
-          y: traceValues,
-          name: model.label,
-          type: 'scatter',
-          mode: 'lines',
-          line: {
-            color: model.color,
-            width: 2,
-          },
-        });
-      }
-    }
-
-    // Gust trace
-    if (gustValues && Array.isArray(gustValues)) {
-      const traceValues: (number | null)[] = [];
-      const traceTimes: string[] = [];
-
-      for (let i = 0; i < gustValues.length; i++) {
-        if (gustValues[i] !== null && gustValues[i] !== undefined) {
-          traceValues.push(gustValues[i] as number);
-          traceTimes.push(times[i]);
-
-          // Accumulate for average calculation
-          const val = gustValues[i] as number;
-          allGustValues[i] = (allGustValues[i] ?? 0) + val;
-          gustCounts[i]++;
-        }
-      }
-
-      if (traceValues.length > 0) {
-        traces.push({
-          x: traceTimes,
-          y: traceValues,
-          name: `${model.label} gust`,
-          type: 'scatter',
-          mode: 'lines',
-          line: {
-            color: model.color,
-            width: 2,
-            dash: 'dot',
-          },
-        });
-      }
-    }
-  }
-
-  // Add average speed trace
-  const averageSpeedValues: number[] = [];
-  const averageSpeedTimes: string[] = [];
-  for (let i = 0; i < allSpeedValues.length; i++) {
-    if (speedCounts[i] > 0) {
-      averageSpeedValues.push(allSpeedValues[i] as number / speedCounts[i]);
-      averageSpeedTimes.push(times[i]);
-    }
-  }
-
-  if (averageSpeedValues.length > 0) {
-    traces.push({
-      x: averageSpeedTimes,
-      y: averageSpeedValues,
-      name: 'Average speed',
-      type: 'scatter',
-      mode: 'lines',
-      line: {
-        color: '#e74c3c',
-        width: 3,
-        dash: 'dash',
-      },
-    });
-  }
-
-  // Add average gust trace
-  const averageGustValues: number[] = [];
-  const averageGustTimes: string[] = [];
-  for (let i = 0; i < allGustValues.length; i++) {
-    if (gustCounts[i] > 0) {
-      averageGustValues.push(allGustValues[i] as number / gustCounts[i]);
-      averageGustTimes.push(times[i]);
-    }
-  }
-
-  if (averageGustValues.length > 0) {
-    traces.push({
-      x: averageGustTimes,
-      y: averageGustValues,
-      name: 'Average gust',
-      type: 'scatter',
-      mode: 'lines',
-      line: {
-        color: '#e74c3c',
-        width: 3,
-        dash: 'dash',
-      },
-    });
-  }
-
-  return traces;
+  return [...traces, ...averages];
 }
 
 function renderChart(
@@ -477,12 +333,12 @@ function renderChart(
 
   // Responsive layout based on screen width
   const isMobile = window.innerWidth < 768;
-  const isTwoHourForecast = elementId.includes('2h');
+  const tickSize = isMobile ? 10 : 12;
 
-  // For 7-day forecast, show x-axis labels only daily
   let xaxis: any = {
-    title: 'Time',
-    tickfont: { size: isMobile ? 10 : 12 },
+    tickfont: { size: tickSize },
+    automargin: true,
+    ...(isMobile ? { nticks: 5, tickangle: 0 } : { title: 'Time' }),
   };
 
   if (isLongForecast && averageTrace && Array.isArray(averageTrace.x)) {
@@ -501,33 +357,31 @@ function renderChart(
       }
     });
 
-    xaxis = {
-      ...xaxis,
-      tickvals,
-      ticktext,
-    };
+    xaxis = { ...xaxis, tickvals, ticktext, nticks: undefined };
   }
 
   const layout: Partial<Plotly.Layout> = {
-    title: title,
-    xaxis: xaxis,
+    title: isMobile ? { text: title, font: { size: 14 }, x: 0.02, xanchor: 'left' } : title,
+    xaxis,
     yaxis: {
-      title: title,
-      tickfont: { size: isMobile ? 10 : 12 },
+      // On mobile the title already names the unit; drop the duplicate to reclaim width
+      ...(isMobile ? {} : { title }),
+      tickfont: { size: tickSize },
+      automargin: true,
     },
     hovermode: 'x unified',
     margin: isMobile
-      ? { l: 45, r: 15, t: 45, b: isLongForecast ? 100 : 60 }
+      ? { l: 36, r: 10, t: 40, b: 30 }
       : { l: 60, r: 20, t: 50, b: 40 },
     autosize: true,
-    height: isMobile ? (isTwoHourForecast ? 380 : 420) : 380,
+    height: isMobile ? 320 : 380,
     plot_bgcolor: 'rgba(255, 255, 255, 0)',
     paper_bgcolor: 'rgba(0, 0, 0, 0)',
-    annotations: annotations,
+    annotations,
     showlegend: false,
   };
 
-  Plotly.newPlot(div, data, layout, { responsive: true });
+  Plotly.newPlot(div, data, layout, { responsive: true, displayModeBar: false });
 }
 
 function renderLegend(): void {

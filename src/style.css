@@ -559,9 +559,8 @@ button:active {
   }
 
   .chart-container {
-    padding: 12px;
-    margin: 20px 0;
-    overflow-x: auto;
+    padding: 4px;
+    margin: 20px -4px;
   }
 
   .chart-legend {

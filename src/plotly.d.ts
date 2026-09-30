@@ -1,7 +1,7 @@
 declare module 'plotly.js-dist-min' {
   namespace Plotly {
     interface Layout {
-      title?: string;
+      title?: string | { text: string; font?: any; x?: number; xanchor?: string };
       xaxis?: any;
       yaxis?: any;
       hovermode?: string;
@@ -26,6 +26,10 @@ declare module 'plotly.js-dist-min' {
       layout?: Partial<Layout>,
       config?: any
     ): Promise<HTMLElement>;
+
+    namespace Plots {
+      function resize(div: string | HTMLElement): Promise<void>;
+    }
   }
 
   export default Plotly;
