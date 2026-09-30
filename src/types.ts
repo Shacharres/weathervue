@@ -19,6 +19,7 @@ export type HourlyVariable =
   | 'apparent_temperature'
   | 'precipitation'
   | 'precipitation_probability'
+  | 'relative_humidity_2m'
   | 'wind_speed_10m'
   | 'wind_gusts_10m';
 

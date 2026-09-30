@@ -7,6 +7,7 @@ const CHART_KINDS: { id: string; title: string; variable?: HourlyVariable }[] = 
   { id: 'temperature', title: 'Temperature (°C)', variable: 'temperature_2m' },
   { id: 'apparent', title: 'Apparent Temperature / Real Feel (°C)', variable: 'apparent_temperature' },
   { id: 'precipitation', title: 'Precipitation (mm)', variable: 'precipitation' },
+  { id: 'humidity', title: 'Relative Humidity (%)', variable: 'relative_humidity_2m' },
   { id: 'wind', title: 'Wind Speed & Gusts (km/h)' },
 ];
 
@@ -113,10 +114,14 @@ function renderTwoHourSummary(forecast: ForecastResponse): void {
   const tempKey = hourlyKey('temperature_2m', MODELS[0].id);
   const precipKey = hourlyKey('precipitation_probability', MODELS[0].id);
   const windKey = hourlyKey('wind_speed_10m', MODELS[0].id);
+  const humidityKey = hourlyKey('relative_humidity_2m', MODELS[0].id);
 
   const temps = forecast.hourly[tempKey] as (number | null)[];
   const precips = forecast.hourly[precipKey] as (number | null)[];
   const winds = forecast.hourly[windKey] as (number | null)[];
+  const humidities = forecast.hourly[humidityKey] as (number | null)[] | undefined;
+
+  const currentHumidity = humidities?.[0] ?? null;
 
   const startTemp = temps?.[0];
   const endTemp = temps?.[temps.length - 1];
@@ -183,6 +188,10 @@ function renderTwoHourSummary(forecast: ForecastResponse): void {
       <div class="forecast-detail-item">
         <div class="forecast-detail-label">Avg Wind</div>
         <div class="forecast-detail-value">${Math.round(avgWind)} km/h</div>
+      </div>
+      <div class="forecast-detail-item">
+        <div class="forecast-detail-label">Humidity</div>
+        <div class="forecast-detail-value">${currentHumidity !== null ? Math.round(currentHumidity) + '%' : '—'}</div>
       </div>
     </div>
 
